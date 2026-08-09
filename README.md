@@ -1,9 +1,9 @@
 # stb-vorbis
 
-A small synchronous Vorbis decoder for JavaScript, backed by a WebAssembly build of [`stb_vorbis`](https://github.com/nothings/stb).
+A small synchronous Vorbis decoder for JavaScript using [`stb_vorbis`](https://github.com/nothings/stb) through WebAssembly.
 
-The decoder is useful where decoding must happen synchronously, such as an `AudioWorklet`.
-It also doesn't use `fetch` or any APIs not available in AudioWorklets.
+This decoder is designed for restricted environments, such as an `AudioWorklet`.
+It doesn't use `fetch` or any APIs not available in AudioWorklets and provides a fully synchronous decode method.
 
 Made for use in [`spessasynth_core`](https://github.com/spessasus/spessasynth_core), but can be used separately.
 
@@ -44,7 +44,7 @@ Run it using `tsx`.
 await StbVorbis.ready;
 ```
 
-Resolves when the embedded WebAssembly decoder has been instantiated. Call `await StbVorbis.ready` before calling `StbVorbis.decode()`.
+Resolves when the decoder has been initialized. Call `await StbVorbis.ready` before calling `StbVorbis.decode()`.
 
 ### decode
 
@@ -73,8 +73,8 @@ interface DecodedAudio<T extends Float32Array | Int16Array = Float32Array> {
 }
 ```
 
-- `sampleRate` — sample rate in Hz.
-- `channels` — one planar PCM array per channel. The array type is `Float32Array` for `"f32"` and `Int16Array` for `"s16"`. All arrays have the same length.
+- `sampleRate` - sample rate in Hz.
+- `channels` - an array of channel PCM data. The array type is `Float32Array` for `"f32"` and `Int16Array` for `"s16"`. All arrays have the same length.
 
 ## Building from source
 
@@ -101,13 +101,14 @@ npm install
 npm run build
 ```
 
-The raw WASM and temporary base64 module are written to the gitignored `out/` directory. The final build publishes `dist/index.js`, which contains the bundled JavaScript and embedded base64 WASM, plus `dist/index.d.ts` containing the public TypeScript declarations. No separate WASM file is required at runtime or included in the npm package.
+The raw WASM and temporary base64 module are written to the gitignored `out/` directory. 
+The final build publishes `dist/index.js`, which contains the code and type declarations.
 
 ## License
 
 Apache License 2.0.
  
-The included `stb_vorbis.c` source retains its original public-domain dedication; see the bottom of the file for details.
+The included `stb_vorbis.c` source retains its original public-domain dedication. See the bottom of the file for details.
 
 ## Special Thanks
 
