@@ -4,6 +4,41 @@ const CHANNELS_OFFSET = 0;
 const SAMPLE_RATE_OFFSET = 4;
 const SAMPLES_OFFSET = 8;
 const PCM_OFFSET = 12;
+const BASE64_ALPHABET =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// AudioWorklet does not have atob
+function atobPolyfill(input: string) {
+    input = input.replaceAll(/[\t\n\f\r ]/g, "");
+
+    if (input.length % 4 === 1) {
+        throw new Error("Invalid base64 string");
+    }
+
+    let output = "";
+    let buffer = 0;
+    let bits = 0;
+
+    for (const char of input) {
+        if (char === "=") break;
+
+        const value = BASE64_ALPHABET.indexOf(char);
+        if (value === -1) {
+            throw new Error("Invalid base64 character");
+        }
+
+        buffer = (buffer << 6) | value;
+        bits += 6;
+
+        if (bits >= 8) {
+            bits -= 8;
+            // eslint-disable-next-line unicorn/prefer-code-point
+            output += String.fromCharCode((buffer >> bits) & 0xff);
+        }
+    }
+
+    return output;
+}
 
 /**
  * The sample format returned by the decoder.
@@ -97,7 +132,8 @@ export class StbVorbis {
     public static readonly ready: Promise<void> = (async () => {
         // WasmData is base64 encoded wasm binary,
         // As we don't want fetch because this is a decoder made for audioWorklet
-        const binary = atob(wasmData);
+        const binary =
+            "atob" in globalThis ? atob(wasmData) : atobPolyfill(wasmData);
         const bytes = Uint8Array.from(binary, (character) =>
             // eslint-disable-next-line unicorn/prefer-code-point
             character.charCodeAt(0)
