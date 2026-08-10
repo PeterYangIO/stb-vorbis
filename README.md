@@ -52,7 +52,7 @@ Resolves when the decoder has been initialized. Call `await StbVorbis.ready` bef
 StbVorbis.decode(data, options);
 ```
 
-Synchronously decodes a complete Ogg Vorbis stream.
+Synchronously decodes a complete Vorbis stream in an Ogg Container.
 
 - `data` - `ArrayBuffer` or `Uint8Array` - the binary Ogg Vorbis data.
 - `options` - optional decoding options. The default sample type is `"f32"`. Currently, there's only one option:
@@ -95,13 +95,12 @@ To build from source,
 run:
 
 ```
-git clone https://github.com/spessasus/stb-vorbis.git
+git clone https://github.com/spessasus/stb-vorbis
 cd stb-vorbis
 npm install
 npm run build
 ```
 
-The raw WASM and temporary base64 module are written to the gitignored `out/` directory. 
 The final build publishes `dist/index.js`, which contains the code and type declarations.
 
 ## License

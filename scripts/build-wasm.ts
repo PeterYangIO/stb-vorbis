@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
+import esbuild from "esbuild";
+import child_process from "node:child_process";
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import esbuild from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const output = path.resolve(root, "out/vorbis.wasm");
@@ -47,34 +47,18 @@ await fs.rm(path.resolve(root, "dist"), { recursive: true, force: true });
 await fs.mkdir(path.resolve(root, "dist"), { recursive: true });
 await fs.mkdir(path.resolve(root, "out"), { recursive: true });
 
-execFileSync(
+child_process.execFileSync(
     await findEmcc(),
     [
         path.resolve(root, "wasm/vorbis_wrapper.c"),
 
-        // O3 means "optimize for size"
         "-O3",
-        // Flto means "link-time optimization"
         "-flto",
-
         "--no-entry",
-
-        // Standalone, we glue it ourselves
         "-sSTANDALONE_WASM=1",
-        // Unlimited heap size
         "-sALLOW_MEMORY_GROWTH=1",
-
-        // Lots of memory
-        "-sMAXIMUM_MEMORY=2147483648",
-        "-sMALLOC=dlmalloc",
-
-        // We don't use files, stdout, filesystem APIs, etc.
         "-sFILESYSTEM=0",
-
-        // We don't need Emscripten's JS runtime.
         "-sEXPORTED_RUNTIME_METHODS=[]",
-
-        // C ABI exposed directly to our handwritten TypeScript/JS.
         "-sEXPORTED_FUNCTIONS=_vorbis_decode,_vorbis_free,_malloc,_free",
 
         "-o",
@@ -108,7 +92,11 @@ await esbuild.build({
 });
 
 // Emit type declarations
-execFileSync("tsc", ["-p", path.resolve(root, "tsconfig.build.json")], {
-    cwd: root,
-    stdio: "inherit"
-});
+child_process.execFileSync(
+    "tsc",
+    ["-p", path.resolve(root, "tsconfig.build.json")],
+    {
+        cwd: root,
+        stdio: "inherit"
+    }
+);
