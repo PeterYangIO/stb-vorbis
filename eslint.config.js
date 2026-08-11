@@ -5,7 +5,9 @@ import eslintConfigPrettier from "eslint-config-prettier/flat";
 import eslint from "@eslint/js";
 
 export default tseslint.config(
-    { ignores: ["dist", ".emsdk-cache", "tests/files/**/*"] },
+    {
+        ignores: ["dist", ".emsdk-cache", "out"]
+    },
     {
         files: ["**/*.{ts,tsx}"],
         ignores: ["examples/**/*.ts"],

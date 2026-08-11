@@ -41,29 +41,11 @@ function atobPolyfill(input: string) {
 }
 
 /**
- * The sample format returned by the decoder.
- */
-export type SampleType = "s16" | "f32";
-
-/**
- * Options for decoding an Ogg Vorbis stream.
- */
-export interface DecodeOptions {
-    /**
-     * Return signed 16-bit PCM or normalized 32-bit floating-point PCM.
-     */
-    readonly sampleType?: SampleType;
-}
-
-/**
  * Decoded Ogg Vorbis audio.
  *
- * PCM samples are planar. The sample array type is selected with
- * `DecodeOptions.sampleType`.
+ * PCM samples are planar Float32 PCM.
  */
-export interface DecodedAudio<
-    T extends Float32Array | Int16Array = Float32Array
-> {
+export interface DecodedAudio {
     /**
      * The audio sample rate in Hz.
      */
@@ -74,7 +56,7 @@ export interface DecodedAudio<
      *
      * All channel arrays contain the same number of samples.
      */
-    readonly channels: readonly T[];
+    readonly channels: Float32Array[];
 }
 
 interface VorbisExports {
@@ -151,25 +133,11 @@ export class StbVorbis {
      * No WASM memory is retained after this method returns.
      *
      * @param data The complete Ogg Vorbis stream.
-     * @param options
      * @returns The decoded planar PCM audio.
      */
     public static decode(
-        data: ArrayBuffer | Uint8Array,
-        options: { readonly sampleType: "s16" }
-    ): DecodedAudio<Int16Array>;
-    public static decode(
-        data: ArrayBuffer | Uint8Array,
-        options?: { readonly sampleType?: "f32" }
-    ): DecodedAudio;
-    public static decode(
-        data: ArrayBuffer | Uint8Array,
-        options: DecodeOptions
-    ): DecodedAudio | DecodedAudio<Int16Array>;
-    public static decode(
-        data: ArrayBuffer | Uint8Array,
-        options: DecodeOptions = {}
-    ): DecodedAudio | DecodedAudio<Int16Array> {
+        data: ArrayBufferLike | Uint8Array<ArrayBufferLike>
+    ): DecodedAudio {
         if (!this.exports) {
             throw new Error("Vorbis decoder not ready");
         }
@@ -228,48 +196,24 @@ export class StbVorbis {
                 }
 
                 /**
-                 * Stb_vorbis returns interleaved signed 16-bit PCM.
+                 * Stb_vorbis returns interleaved floating-point PCM.
                  *
-                 * Copy it into JS-owned memory while the WASM allocation
-                 * is still alive, then immediately free the WASM result.
+                 * Copy it into JS planar arrays while the WASM
+                 * allocation is still present
                  */
-                const pcm = new Int16Array(
+                const pcm = new Float32Array(
                     memory.buffer,
                     resultPointer + PCM_OFFSET,
                     channels * samples
                 );
 
-                // S16 is the raw format, convert to JS-owned typed arrays
-                if (options?.sampleType === "s16") {
-                    const output = new Array<Int16Array>(channels);
-
-                    for (let channel = 0; channel < channels; channel++) {
-                        const channelData = new Int16Array(samples);
-
-                        for (let sample = 0; sample < samples; sample++) {
-                            channelData[sample] =
-                                pcm[sample * channels + channel];
-                        }
-
-                        output[channel] = channelData;
-                    }
-
-                    return {
-                        sampleRate,
-                        channels: output
-                    };
-                }
-
-                // F32 requested, convert it here
                 const output = new Array<Float32Array>(channels);
 
                 for (let channel = 0; channel < channels; channel++) {
                     const channelData = new Float32Array(samples);
 
                     for (let sample = 0; sample < samples; sample++) {
-                        const value = pcm[sample * channels + channel];
-
-                        channelData[sample] = value / 32_768;
+                        channelData[sample] = pcm[sample * channels + channel];
                     }
 
                     output[channel] = channelData;

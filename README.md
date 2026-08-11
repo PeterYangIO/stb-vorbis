@@ -3,7 +3,8 @@
 A small synchronous Vorbis decoder for JavaScript using [`stb_vorbis`](https://github.com/nothings/stb) through WebAssembly.
 
 This decoder is designed for restricted environments, such as an `AudioWorklet`.
-It doesn't use `fetch` or any APIs not available in AudioWorklets and provides a fully synchronous decode method.
+It doesn't use `fetch` or any APIs not available in AudioWorklets and provides a fully synchronous decode method, shipping one JS file.
+The WebAssembly binary is stored as base64-encoded data in the JS file.
 
 Made for use in [`spessasynth_core`](https://github.com/spessasus/spessasynth_core), but can be used separately.
 
@@ -49,16 +50,12 @@ Resolves when the decoder has been initialized. Call `await StbVorbis.ready` bef
 ### decode
 
 ```ts
-StbVorbis.decode(data, options);
+StbVorbis.decode(data);
 ```
 
 Synchronously decodes a complete Vorbis stream in an Ogg Container.
 
-- `data` - `ArrayBuffer` or `Uint8Array` - the binary Ogg Vorbis data.
-- `options` - optional decoding options. The default sample type is `"f32"`. Currently, there's only one option:
-    - `sampleType` - `'f32' | 's16'` - the type of decoded PCM data.
-        - `'s16'` - `Int16Array` channels containing the signed 16-bit PCM values from `stb_vorbis`.
-        - `'f32'` - `Float32Array` channels containing the floating-point PCM values from `stb_vorbis`.
+- `data` - `ArrayBufferLike` or `Uint8Array` - the binary Ogg Vorbis data.
 
 Throws if the decoder has not been initialized, if the input cannot be decoded, or if WASM memory allocation fails.
 
@@ -67,14 +64,14 @@ The returned object is described below.
 ### DecodedAudio
 
 ```ts
-interface DecodedAudio<T extends Float32Array | Int16Array = Float32Array> {
+interface DecodedAudio {
     readonly sampleRate: number;
-    readonly channels: readonly T[];
+    readonly channels: Float32Array[];
 }
 ```
 
 - `sampleRate` - sample rate in Hz.
-- `channels` - an array of channel PCM data. The array type is `Float32Array` for `"f32"` and `Int16Array` for `"s16"`. All arrays have the same length.
+- `channels` - an array of `Float32Array` channel PCM data. All arrays have the same length.
 
 ## Building from source
 
@@ -82,8 +79,9 @@ The build requires Emscripten. The build script looks for `emcc` in this order:
 
 1. The `EMCC` environment variable.
 2. `$EMSDK/upstream/emscripten/emcc`.
-3. `~/emsdk/upstream/emscripten/emcc`.
-4. `emcc` on `PATH`.
+3. `/usr/lib/emscripten/emcc`.
+4. `~/emsdk/upstream/emscripten/emcc`.
+5. `emcc` on `PATH` directly.
 
 For a custom installation, either activate Emscripten in the shell or set `EMCC` explicitly:
 
@@ -106,7 +104,7 @@ The final build publishes `dist/index.js`, which contains the code and type decl
 ## License
 
 Apache License 2.0.
- 
+
 The included `stb_vorbis.c` source retains its original public-domain dedication. See the bottom of the file for details.
 
 ## Special Thanks

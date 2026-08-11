@@ -17,7 +17,7 @@ const file = await readFile(fileName);
 await StbVorbis.ready;
 
 // Decode the file
-const audio = StbVorbis.decode(file, { sampleType: "f32" });
+const audio = StbVorbis.decode(file);
 const channelCount = audio.channels.length;
 const sampleCount = audio.channels[0]?.length ?? 0;
 
