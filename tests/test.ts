@@ -155,10 +155,6 @@ try {
     server.close();
 }
 
-const { StbVorbis: InlineStbVorbis } = await import("../src/inline");
-await InlineStbVorbis.ready;
-assertDecodedAudio(InlineStbVorbis.decode(fixture));
-
 console.info("Testing packed package...");
 
 const defaultEntry = await readFile(
@@ -194,9 +190,11 @@ try {
 
     assert.ok(packedFiles.has("dist/index.js"));
     assert.ok(packedFiles.has("dist/index.d.ts"));
-    assert.ok(packedFiles.has("dist/inline.js"));
-    assert.ok(packedFiles.has("dist/inline.d.ts"));
     assert.ok(packedFiles.has("dist/vorbis.wasm"));
+    assert.equal(
+        [...packedFiles].some((file) => file.includes("inline")),
+        false
+    );
 
     await execute(
         npmCommand,
@@ -216,7 +214,6 @@ try {
         import assert from "node:assert/strict";
         import { readFile } from "node:fs/promises";
         import { StbVorbis } from "stb-vorbis";
-        import { StbVorbis as InlineStbVorbis } from "stb-vorbis/inline";
 
         const wasmUrl = import.meta.resolve("stb-vorbis/vorbis.wasm");
         assert.match(wasmUrl, /dist\/vorbis\.wasm$/);
@@ -225,11 +222,6 @@ try {
             () => StbVorbis.decode(new Uint8Array()),
             /Failed to decode Ogg Vorbis stream/
         );
-
-        await InlineStbVorbis.ready;
-        const decoded = InlineStbVorbis.decode(await readFile("tone.ogg"));
-        assert.equal(decoded.sampleRate, 8000);
-        assert.equal(decoded.channels.length, 1);
     `;
     await execute(
         process.execPath,

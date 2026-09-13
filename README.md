@@ -51,8 +51,8 @@ Initializes the decoder from a compiled `WebAssembly.Module`, `ArrayBuffer`, or
 initialization. Failed initialization can be retried.
 
 `StbVorbis.ready` remains available as a readiness observer for integrations
-such as SpessaSynth, but it no longer starts hidden inline initialization.
-It resolves after the first successful `initialize()` call.
+such as SpessaSynth, but it does not start initialization. It resolves after the
+first successful `initialize()` call.
 
 Applications should compile the module on the main thread before constructing an
 AudioWorklet:
@@ -112,18 +112,12 @@ point without constructing a URL when the module is loaded in an AudioWorklet.
 Bundlers should copy or emit that asset without inlining it. Node and offline
 applications can read the exported file and pass its bytes to `initialize()`.
 
-## Inline compatibility entry
+## Migrating from 0.x
 
-Existing single-file consumers can opt into the previous behavior:
-
-```ts
-import { StbVorbis } from "stb-vorbis/inline";
-
-await StbVorbis.ready;
-```
-
-This entry embeds the WASM payload. It is never selected automatically by the
-default package entry.
+Version 1.0 removes automatic initialization from an embedded base64 payload.
+Applications must call `initialize()` or `initializeFromUrl()` before decoding.
+The package no longer ships any entry point containing the WASM binary encoded
+as JavaScript.
 
 The returned object is described below.
 
@@ -166,8 +160,6 @@ npm run build
 ```
 
 The build emits `dist/index.js`, `dist/index.d.ts`, and `dist/vorbis.wasm`.
-It also emits the opt-in compatibility files `dist/inline.js` and
-`dist/inline.d.ts`.
 
 ## License
 

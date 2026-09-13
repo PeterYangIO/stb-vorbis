@@ -1,6 +1,6 @@
 {
     "name": "stb-vorbis",
-    "version": "0.0.6",
+    "version": "1.0.0",
     "description": "Synchronous Ogg Vorbis decoder for JavaScript and WebAssembly",
     "type": "module",
     "main": "dist/index.js",
@@ -11,11 +11,6 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "default": "./dist/index.js"
-        },
-        "./inline": {
-            "types": "./dist/inline.d.ts",
-            "import": "./dist/inline.js",
-            "default": "./dist/inline.js"
         },
         "./vorbis.wasm": "./dist/vorbis.wasm",
         "./package.json": "./package.json"
