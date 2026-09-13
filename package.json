@@ -25,7 +25,7 @@
         "lint": "eslint .",
         "format": "prettier . --write",
         "test:types": "npm run lint && tsc -b",
-        "test": "npm run build && node --test tests/*.test.mjs",
+        "test": "npm run build && tsx tests/test.ts",
         "build:wasm": "tsx scripts/build-wasm.ts",
         "prepublishOnly": "npm run build"
     },
@@ -37,7 +37,6 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-unicorn": "^73.0.0",
         "globals": "^17.9.0",
-        "playwright": "^1.63.0",
         "prettier": "^3.9.6",
         "tsx": "^4.23.11",
         "typescript": "^6.0.3",
@@ -69,7 +68,6 @@
         "url": "https://github.com/spessasus"
     },
     "license": "Apache-2.0",
-    "sideEffects": false,
     "bugs": {
         "url": "https://github.com/spessasus/stb-vorbis/issues",
         "email": "spesekspesek@gmail.com"

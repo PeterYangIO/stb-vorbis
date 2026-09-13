@@ -18,28 +18,22 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              uses: actions/checkout@v7
 
             - name: Setup Emscripten
-              uses: emscripten-core/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
+              uses: emscripten-core/setup-emsdk@v15
               with:
                   version: 6.0.6
                   actions-cache-folder: .emsdk-cache
 
             - name: Setup Node
-              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              uses: actions/setup-node@v6
               with:
-                  node-version: 24.19.0
+                  node-version: latest
                   registry-url: https://registry.npmjs.org
 
             - name: Install dependencies
               run: npm ci
 
-            - name: Install Chromium
-              run: npx playwright install --with-deps chromium
-
-            - name: Build and test
-              run: npm test
-
-            - name: Publish to npm registry
-              run: npm publish --provenance --access public --ignore-scripts
+            - name: Build and publish to npm registry
+              run: npm publish --provenance --access public

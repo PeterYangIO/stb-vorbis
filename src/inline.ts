@@ -1,6 +1,8 @@
 import wasmData from "../out/vorbis.wasm.js";
 import { StbVorbis as ExternalStbVorbis } from "./index.js";
 
+import type { DecodedAudio } from "./index.js";
+
 export type { DecodedAudio } from "./index.js";
 
 const BASE64_ALPHABET =
@@ -50,13 +52,23 @@ function decodeBase64(input: string): Uint8Array<ArrayBuffer> {
  * Prefer the default `stb-vorbis` entry and explicit initialization in new
  * applications.
  */
-class InlineStbVorbis extends ExternalStbVorbis {
+export class StbVorbis {
     /**
      * Resolves when the embedded decoder has initialized.
      */
-    public static readonly ready = InlineStbVorbis.initialize(
+    public static readonly ready = ExternalStbVorbis.initialize(
         decodeBase64(wasmData)
     );
-}
 
-export { InlineStbVorbis as StbVorbis };
+    /**
+     * Decodes an entire Ogg Vorbis stream synchronously.
+     *
+     * @param data The complete Ogg Vorbis stream.
+     * @returns The decoded planar PCM audio.
+     */
+    public static decode(
+        data: ArrayBufferLike | Uint8Array<ArrayBufferLike>
+    ): DecodedAudio {
+        return ExternalStbVorbis.decode(data);
+    }
+}
