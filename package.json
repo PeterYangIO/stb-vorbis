@@ -1,6 +1,6 @@
 {
     "name": "stb-vorbis",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "description": "Synchronous Ogg Vorbis decoder for JavaScript and WebAssembly",
     "type": "module",
     "main": "dist/index.js",

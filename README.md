@@ -112,9 +112,9 @@ point without constructing a URL when the module is loaded in an AudioWorklet.
 Bundlers should copy or emit that asset without inlining it. Node and offline
 applications can read the exported file and pass its bytes to `initialize()`.
 
-## Migrating from 0.x
+## Migrating from 0.0.x
 
-Version 1.0 removes automatic initialization from an embedded base64 payload.
+Version 0.1 removes automatic initialization from an embedded base64 payload.
 Applications must call `initialize()` or `initializeFromUrl()` before decoding.
 The package no longer ships any entry point containing the WASM binary encoded
 as JavaScript.
