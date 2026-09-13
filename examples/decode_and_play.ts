@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
-import { StbVorbis } from "../src";
+import { getVorbisWasmUrl, StbVorbis } from "../src";
 
 const [fileName] = process.argv.slice(2);
 
@@ -14,7 +14,7 @@ console.info("This example requires ffplay to be installed.");
 // Read the file
 const file = await readFile(fileName);
 
-await StbVorbis.ready;
+await StbVorbis.initialize(await readFile(getVorbisWasmUrl()));
 
 // Decode the file
 const audio = StbVorbis.decode(file);

@@ -1,43 +1,13 @@
-import wasmData from "../out/vorbis.wasm.js";
-
 const CHANNELS_OFFSET = 0;
 const SAMPLE_RATE_OFFSET = 4;
 const SAMPLES_OFFSET = 8;
 const PCM_OFFSET = 12;
-const BASE64_ALPHABET =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-// AudioWorklet does not have atob
-function atobPolyfill(input: string) {
-    input = input.replaceAll(/[\t\n\f\r ]/g, "");
-
-    if (input.length % 4 === 1) {
-        throw new Error("Invalid base64 string");
-    }
-
-    let output = "";
-    let buffer = 0;
-    let bits = 0;
-
-    for (const char of input) {
-        if (char === "=") break;
-
-        const value = BASE64_ALPHABET.indexOf(char);
-        if (value === -1) {
-            throw new Error("Invalid base64 character");
-        }
-
-        buffer = (buffer << 6) | value;
-        bits += 6;
-
-        if (bits >= 8) {
-            bits -= 8;
-            // eslint-disable-next-line unicorn/prefer-code-point
-            output += String.fromCharCode((buffer >> bits) & 0xff);
-        }
-    }
-
-    return output;
+/**
+ * Resolves the separately shipped WASM asset in URL-capable environments.
+ */
+export function getVorbisWasmUrl(): URL {
+    return new URL("vorbis.wasm", import.meta.url);
 }
 
 /**
@@ -98,6 +68,18 @@ const imports = {
     }
 };
 
+function isVorbisExports(
+    exports: WebAssembly.Exports
+): exports is WebAssembly.Exports & VorbisExports {
+    return (
+        exports.memory instanceof WebAssembly.Memory &&
+        typeof exports.malloc === "function" &&
+        typeof exports.free === "function" &&
+        typeof exports.vorbis_decode === "function" &&
+        typeof exports.vorbis_free === "function"
+    );
+}
+
 /**
  * Synchronous Ogg Vorbis decoder backed by stb_vorbis.
  */
@@ -107,24 +89,138 @@ export class StbVorbis {
      * @private
      */
     private static exports: VorbisExports | undefined;
+
     /**
-     * Resolves when the underlying WebAssembly decoder is initialized.
+     * The initialization currently in progress.
+     * @private
      */
-    // eslint-disable-next-line unicorn/consistent-function-scoping
-    public static readonly ready: Promise<void> = (async () => {
-        // WasmData is base64 encoded wasm binary,
-        // As we don't want fetch because this is a decoder made for audioWorklet
-        const binary =
-            "atob" in globalThis ? atob(wasmData) : atobPolyfill(wasmData);
-        const bytes = Uint8Array.from(binary, (character) =>
-            // eslint-disable-next-line unicorn/prefer-code-point
-            character.charCodeAt(0)
+    private static initialization: Promise<void> | undefined;
+
+    /**
+     * Completes the readiness promise after the first successful initialization.
+     * @private
+     */
+    private static resolveReady: (() => void) | undefined;
+
+    /**
+     * Resolves after the decoder is explicitly initialized.
+     *
+     * This promise does not start initialization or fetch the WASM asset.
+     */
+    // eslint-disable-next-line unicorn/consistent-function-scoping -- the resolver belongs to this class's readiness state
+    public static readonly ready = new Promise<void>((resolve) => {
+        StbVorbis.resolveReady = resolve;
+    });
+
+    /**
+     * Initializes the decoder from a compiled module or raw WASM bytes.
+     *
+     * Concurrent and repeated calls share the first successful initialization.
+     * A failed initialization may be retried.
+     *
+     * @param source A compiled module or the complete `vorbis.wasm` contents.
+     */
+    public static initialize(
+        source: WebAssembly.Module | ArrayBuffer | Uint8Array<ArrayBufferLike>
+    ): Promise<void> {
+        if (this.exports !== undefined) {
+            return Promise.resolve();
+        }
+        if (this.initialization !== undefined) {
+            return this.initialization;
+        }
+
+        if (source instanceof WebAssembly.Module) {
+            try {
+                this.setInstance(new WebAssembly.Instance(source, imports));
+                return Promise.resolve();
+            } catch (error) {
+                return Promise.reject(
+                    error instanceof Error
+                        ? error
+                        : new Error("Failed to initialize Vorbis WASM", {
+                              cause: error
+                          })
+                );
+            }
+        }
+
+        const bytes =
+            source instanceof Uint8Array
+                ? Uint8Array.from(source)
+                : Uint8Array.from(new Uint8Array(source));
+        return this.trackInitialization(this.instantiateBytes(bytes));
+    }
+
+    /**
+     * Fetches and initializes the decoder in environments that provide fetch.
+     *
+     * AudioWorklets should receive a compiled `WebAssembly.Module` through
+     * `processorOptions`, or receive bytes through their `MessagePort`, and
+     * call {@link initialize} instead.
+     *
+     * @param url The deployed `vorbis.wasm` URL.
+     * @param requestInit Optional fetch settings.
+     */
+    public static initializeFromUrl(
+        url: string | URL | Request,
+        requestInit?: RequestInit
+    ): Promise<void> {
+        if (this.exports !== undefined) {
+            return Promise.resolve();
+        }
+        if (this.initialization !== undefined) {
+            return this.initialization;
+        }
+
+        return this.trackInitialization(
+            this.fetchAndInstantiate(url, requestInit)
         );
+    }
 
+    private static async fetchAndInstantiate(
+        url: string | URL | Request,
+        requestInit?: RequestInit
+    ): Promise<void> {
+        const response = await fetch(url, requestInit);
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch Vorbis WASM: ${response.status} ${response.statusText}`
+            );
+        }
+        await this.instantiateBytes(
+            new Uint8Array(await response.arrayBuffer())
+        );
+    }
+
+    private static trackInitialization(
+        initialization: Promise<void>
+    ): Promise<void> {
+        this.initialization = initialization;
+        void initialization.catch(() => {
+            if (this.initialization === initialization) {
+                this.initialization = undefined;
+            }
+        });
+        return initialization;
+    }
+
+    private static async instantiateBytes(
+        bytes: Uint8Array<ArrayBuffer>
+    ): Promise<void> {
         const { instance } = await WebAssembly.instantiate(bytes, imports);
+        this.setInstance(instance);
+    }
 
-        StbVorbis.exports = instance.exports as unknown as VorbisExports;
-    })();
+    private static setInstance(instance: WebAssembly.Instance): void {
+        if (!isVorbisExports(instance.exports)) {
+            throw new Error("Vorbis WASM has an invalid export surface");
+        }
+        this.exports = instance.exports;
+        this.initialization = undefined;
+        this.resolveReady?.();
+        this.resolveReady = undefined;
+    }
 
     /**
      * Decodes an entire Ogg Vorbis stream synchronously.
@@ -139,7 +235,9 @@ export class StbVorbis {
         data: ArrayBufferLike | Uint8Array<ArrayBufferLike>
     ): DecodedAudio {
         if (!this.exports) {
-            throw new Error("Vorbis decoder not ready");
+            throw new Error(
+                "Vorbis decoder is not initialized; call StbVorbis.initialize() first"
+            );
         }
 
         const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);

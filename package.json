@@ -6,11 +6,26 @@
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./inline": {
+            "types": "./dist/inline.d.ts",
+            "import": "./dist/inline.js",
+            "default": "./dist/inline.js"
+        },
+        "./vorbis.wasm": "./dist/vorbis.wasm",
+        "./package.json": "./package.json"
+    },
     "scripts": {
         "build": "npm run test:types && npm run build:wasm",
         "lint": "eslint .",
         "format": "prettier . --write",
         "test:types": "npm run lint && tsc -b",
+        "test": "npm run build && node --test tests/*.test.mjs",
         "build:wasm": "tsx scripts/build-wasm.ts",
         "prepublishOnly": "npm run build"
     },
@@ -22,6 +37,7 @@
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-unicorn": "^73.0.0",
         "globals": "^17.9.0",
+        "playwright": "^1.63.0",
         "prettier": "^3.9.6",
         "tsx": "^4.23.11",
         "typescript": "^6.0.3",
@@ -53,6 +69,7 @@
         "url": "https://github.com/spessasus"
     },
     "license": "Apache-2.0",
+    "sideEffects": false,
     "bugs": {
         "url": "https://github.com/spessasus/stb-vorbis/issues",
         "email": "spesekspesek@gmail.com"
